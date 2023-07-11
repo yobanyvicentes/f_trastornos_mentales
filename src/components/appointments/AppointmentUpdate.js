@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from "react";
 import Swal from 'sweetalert2'
-import {postAvailability} from '../../services/availabilityService'
+import {putAppointment, getAppointmentById} from '../../services/appointmentService'
 import { getUsers } from '../../services/userService';
+import { Link, useParams } from 'react-router-dom';
 
-export const AvailabilityCreate = ({listarObjetos}) => {
+export const AppointmentUpdate = () => {
+    //-------------parámetros----------------------
+    const {appointmentId = ''} = useParams();
+
+    const [appointment, setAppointment] = useState({});
     const [users, setUsers]  = useState([]);
+
+    const [modelo, setModelo ] = useState({});
+    const { user='', day='', month='', year='', time='', topic=''} = modelo;
+
+    //------- obtener lista de usuarios ------------------------
     const listUsers = async () => {
         try {
           const { data } = await getUsers();
@@ -15,27 +25,59 @@ export const AvailabilityCreate = ({listarObjetos}) => {
     }
     useEffect(() => {
         listUsers();
-        console.log(getUsers());
+    }, []);
+    //-------- obtener elemento a editar --------------------------
+    const getAppointment = async () => {
+        try {
+            Swal.fire({
+                allowOutsideClick: false,
+                title: 'Cargando....',
+                text: 'Hola Por favor espere',
+                timer: 5000//milisegundos
+            });
+            Swal.showLoading();
+            Swal.close();
+            let { data } = await getAppointmentById(appointmentId);
+            setAppointment (data);
+            console.log('appointment');
+            console.log(appointment);
+        } catch (error) {
+            Swal.close();
+            console.log(error);
+        }
+    }
+    useEffect(() => {
+        getAppointment();
     }, []);
     // ------------------------------------------------------------
-    const [modelo, setModelo ] = useState({});
-    const { user = '', day='', month= '', year =  '', time='', topic = ''} = modelo;
+    useEffect(() => {
+        setModelo({
+            user: appointment.user,
+            day: appointment.day,
+            month: appointment.month,
+            year: appointment.year,
+            time: appointment.time,
+            topic: appointment.topic,
+        });
+        console.log('modelo');
+        console.log(modelo);
+    }, [appointment]);
+
     const handleOnChange = (e) => {
         setModelo({...modelo, [e.target.name]: e.target.value });
     }
 
     const handleOnSubmit = async (e) => {
         e.preventDefault();
-        const Model = { user:user, day:day, month:month, year:year, time:time, topic:topic};
-        console.log('Model:');
+        const Model = { user, day, month, year, time, topic };
+        console.log('Model');
         console.log(Model);
         try {
             Swal.fire({
                 allowOutsideClick: false, title: 'Cargando....', text: 'Por favor espere', timer: 2000//milisegundos
             });
-            const { data } = await postAvailability(Model);
+            const { data } = await putAppointment(appointmentId, Model);
             console.log(data);
-            listarObjetos();
             setModelo({ [e.target.name]: '' });
         } catch (error) {
             Swal.fire('Error', 'hubo un error', 'error')
@@ -43,17 +85,18 @@ export const AvailabilityCreate = ({listarObjetos}) => {
         }
     }
 
+    //---------------------------------------------------------------
     return (
         <form className="form mx-3 mt-3"
         onSubmit={(e) => { handleOnSubmit(e) }}>
             <div className="row">
-                <div className='row' te>
-                    <h5>Registrar Disponibilidad</h5>
+                <div className='row'>
+                    <h5>Editar Disponibilidad</h5>
                 </div>
                 <div className="col-md-2">
                     <div className="mb-3">
                         <label className="form-label"
-                            for="userid">Especialista
+                            for="userid">Usuario
                         </label>
                         <select className="form-select"
                             required
@@ -164,10 +207,15 @@ export const AvailabilityCreate = ({listarObjetos}) => {
                     </div>
                 </div>
             </div>
-            <button className="btn btn-primary m-2"
-                type="submit">
-                    Guardar
-            </button>
+            <div className='row'>
+                <button className='btn btn-primary col-md-1'
+                    type="Submit"
+                > Guardar
+                </button>
+                <Link className='col-md-1' to={`/appointment`}>
+                    <button className='btn btn-danger'>Volver</button>
+                </Link>
+            </div>
         </form>
     );
 }
